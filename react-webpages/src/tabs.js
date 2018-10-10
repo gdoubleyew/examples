@@ -10,7 +10,6 @@ class SettingsPane extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      config: {},
       tomlFile: 'example.toml',
       tomlErrorMsg: '',
     }
@@ -20,7 +19,6 @@ class SettingsPane extends React.Component {
     this.textInputField = this.textInputField.bind(this)
     this.textInputField = this.textInputField.bind(this)
     this.inputOnChange = this.inputOnChange.bind(this)
-    this.submitOnClick = this.submitOnClick.bind(this)
   }
 
   tomlInputForm(props) {
@@ -43,7 +41,7 @@ class SettingsPane extends React.Component {
   loadTomlFile(event) {
     try {
       const configData = toml.parse(event.target.result)
-      this.setState({ config: configData, tomlErrorMsg: '' })
+      this.props.setConfig(configData)
     } catch (err) {
       this.setState({ tomlErrorMsg: err.message })
     }
@@ -51,22 +49,22 @@ class SettingsPane extends React.Component {
 
   inputOnChange(event) {
     const section = event.target.attributes.section.value
-    var revSection = Object.assign({}, this.state.config[section], { [event.target.name]: event.target.value })
-    var revConfig = Object.assign({}, this.state.config, { [section]: revSection })
-    this.setState({ config: revConfig })
+    var revSection = Object.assign({}, this.props.config[section], { [event.target.name]: event.target.value })
+    var revConfig = Object.assign({}, this.props.config, { [section]: revSection })
+    this.props.setConfig(revConfig)
   }
 
   textInputField(props) {
     return elem('p', { key: props.name },
       props.name + ': ',
-      elem('input', Object.assign(props, { value: this.state.config[props.section][props.name], onChange: this.inputOnChange })),
+      elem('input', Object.assign(props, { value: this.props.config[props.section][props.name], onChange: this.inputOnChange })),
     )
   }
 
   settingsInputForm(props) {
     var formSections = []
-    for (let section in this.state.config) {
-      let subform = Object.keys(this.state.config[section]).map(k =>
+    for (let section in this.props.config) {
+      let subform = Object.keys(this.props.config[section]).map(k =>
         this.textInputField({ name: k, section: section })
       )
       formSections.push(
@@ -79,16 +77,9 @@ class SettingsPane extends React.Component {
     const form =
       elem('fieldset', {},
         elem('legend', {}, 'Configurations'),
-        elem('p', { align: 'right' },
-          elem('button', { onClick: this.submitOnClick, style: {align: 'right'} }, 'submit'),
-        ),
         formSections,
       )
     return form
-  }
-
-  submitOnClick(event) {
-    console.log('settingsChange: ' + this.state.config)
   }
 
   render() {
@@ -108,9 +99,6 @@ class StatusPane extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      config: {imgDir: '/tmp/img'},
-      runNum: '',
-      scanNum: '',
       files: [],
     }
 
@@ -120,16 +108,16 @@ class StatusPane extends React.Component {
   }
 
   runNumOnChange(event) {
-    this.setState({ runNum: event.target.value })
+    this.props.setConfigItem('Runs', [event.target.value])
   }
 
   scanNumOnChange(event) {
-    this.setState({ scanNum: event.target.value })
+    this.props.setConfigItem('ScanNums', [event.target.value])
   }
 
   runBttnOnClick(event) {
     // TODO: Watch the mriImgDir for new files created matching the run and scan numbers
-    console.log(`Run ${this.state.runNum}: Watch directory ${this.state.config.imgDir} for new scans`)
+    console.log(`Run ${this.props.getConfigItem('Runs')}: Watch directory ${this.props.getConfigItem('imgDir')} for new scans`)
   }
 
   componentDidMount() {
@@ -141,13 +129,13 @@ class StatusPane extends React.Component {
       elem('li', { key: idx }, file)
     )
     return elem('div', {},
-      elem('p', {}, `MRI Scans Directory: ${this.state.config.imgDir}`),
+      elem('p', {}, `MRI Scans Directory: ${this.props.getConfigItem('imgDir')}`),
       elem('hr'),
       elem('p', {}, 'Run #: ',
-        elem('input', { value: this.state.runNum, onChange: this.runNumOnChange }),
+        elem('input', { value: this.props.getConfigItem('Runs'), onChange: this.runNumOnChange }),
       ),
       elem('p', {}, 'Scan #: ',
-        elem('input', { value: this.state.scanNum, onChange: this.scanNumOnChange }),
+        elem('input', { value: this.props.getConfigItem('ScanNums'), onChange: this.scanNumOnChange }),
       ),
       elem('button', { onClick: this.runBttnOnClick }, 'Run'),
       elem('hr'),
@@ -161,10 +149,40 @@ class RtAtten extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      settingsPane: new SettingsPane(),
-      statusPane: new StatusPane(),
+      config: {},
       errorMsg: '',
     }
+    this.setConfig = this.setConfig.bind(this);
+    this.getConfigItem = this.getConfigItem.bind(this);
+    this.setConfigItem = this.setConfigItem.bind(this);
+  }
+
+  setConfig(newConfig) {
+    this.setState({config: newConfig})
+  }
+
+  getConfigItem(name) {
+    for (let section in this.state.config) {
+      for (let key in this.state.config[section]) {
+        if (key == name) {
+          return this.state.config[section][key]
+        }
+      }
+    }
+    return ''
+  }
+
+  setConfigItem(name, value) {
+    for (let section in this.state.config) {
+      for (let key in this.state.config[section]) {
+        if (key == name) {
+          var revSection = Object.assign({}, this.state.config[section], { [name]: value })
+          var revConfig = Object.assign({}, this.state.config, { [section]: revSection })
+          return this.setState({config: revConfig})
+        }
+      }
+    }
+    return null
   }
 
   render() {
@@ -178,38 +196,31 @@ class RtAtten extends React.Component {
          elem(Tab, {}, 'Settings'),
        ),
        elem(TabPanel, {},
-         elem(StatusPane, {}),
+         elem(StatusPane,
+           {config: this.state.config,
+            setConfig: this.setConfig,
+            getConfigItem: this.getConfigItem,
+            setConfigItem: this.setConfigItem,
+           }
+         ),
        ),
        elem(TabPanel, {},
-         elem(SettingsPane, {}),
+         elem(SettingsPane,
+           {config: this.state.config,
+            setConfig: this.setConfig,
+            getConfigItem: this.getConfigItem,
+            setConfigItem: this.setConfigItem,
+           }
+         ),
        ),
      )
     return tp
-    // return elem('div', {},
-    //   this.tomlInputForm({}),
-    //   elem('br'),
-    //   this.settingsInputForm({})
-    // )
   }
 }
 
-// function TabPage() {
-//   var tp =
-//    elem(Tabs, {},
-//      elem(TabList, {},
-//        elem(Tab, {}, 'Run'),
-//        elem(Tab, {}, 'Settings'),
-//      ),
-//      elem(TabPanel, {},
-//        elem(StatusPane, {}),
-//      ),
-//      elem(TabPanel, {},
-//        elem(SettingsPane, {}),
-//      ),
-//    )
-//   return tp
-// }
+function Render() {
+  const tabDiv = document.getElementById('tabs_container');
+  ReactDOM.render(elem(RtAtten), tabDiv);
+}
 
-const tabContainer = document.querySelector('#tabs_container');
-// ReactDOM.render(elem('div', {}, elem(TabPage, {})), tabContainer);
-ReactDOM.render(elem(RtAtten), tabContainer);
+Render()
