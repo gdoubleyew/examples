@@ -1,7 +1,10 @@
 const React = require('react')
 const ReactDOM = require('react-dom')
 import RFB from './lib/rfb.js';
-// import RFB from './node_modules/\@novnc/novnc/core/rfb';
+ //import RFB from './node_modules/\@novnc/novnc/core/rfb';
+const novnc = require('@novnc/novnc').default
+console.log(RFB)
+console.log(novnc)
 // const RFB = require('./node_modules/\@novnc/novnc/core/rfb')
 
 const elem = React.createElement
