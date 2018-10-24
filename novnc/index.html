@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Scroll Test</title>
+    <style type="text/css">
+    #top_bar {
+        background-color: #6e84a3;
+        color: white;
+        font: bold 12px Helvetica;
+        padding: 6px 5px 4px 5px;
+        border-bottom: 1px outset;
+    }
+    #status {
+        text-align: center;
+    }
+
+    #screen {
+        flex: 1; /* fill remaining space */
+        overflow: hidden;
+    }
+</style>
+  </head>
+  <body>
+    <h3>Test Scroll Pane</h3>
+    <div id="app"></div>
+    <div id="top_bar">
+        <div id="status">Loading</div>
+    </div>
+    <div id="screen">
+        <!-- This is where the remote screen will appear -->
+    </div>
+    <script src="build/clientBundle.js"></script>
+  </body>
+</html>
